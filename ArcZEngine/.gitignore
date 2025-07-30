@@ -1,2 +1,4 @@
 zig-out/
 .zig-cache/
+**/*.xml
+src/vk.zig

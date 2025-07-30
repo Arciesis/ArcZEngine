@@ -1,9 +1,8 @@
 const std = @import("std");
+const testing = std.testing;
 
-pub fn testingsomestuff() !void {
-    return error.oopsi;
-}
-
-test "testingsomestuff" {
-    try std.testing.expectError(error.opsi, testingsomestuff());
-}
+const zm = @import("zmath");
+const glfw = @import("zglfw");
+const ecs = @import("zflecs");
+const zimg = @import("zigimg");
+const vk = @import("vk.zig");
