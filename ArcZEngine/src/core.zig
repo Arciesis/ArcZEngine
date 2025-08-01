@@ -8,11 +8,14 @@ const zm = @import("zmath");
 // const zgui = @import("zgui");
 const vk = @import("vk.zig");
 
-const glfw = @cImport({
-    @cDefine("GLFW_INCLUDE_NONE", {});
-    @cInclude("GLFW/glfw3.h");
-    // @cInclude("GLFW/glfw3native.h");
-});
+const glfw = @import("glfw");
+
+// DEPRECATED: use of a bindings with vulkan support instead.
+// const glfw = @cImport({
+//     @cDefine("GLFW_INCLUDE_NONE", {});
+//     @cInclude("GLFW/glfw3.h");
+//     // @cInclude("GLFW/glfw3native.h");
+// });
 
 /// Engine Default Configuration
 pub const CoreConfig = struct {
@@ -41,15 +44,21 @@ pub const CoreConfig = struct {
     }
 };
 
-const glfwError = error{
-    FailedToInit,
-    FailedToInitWindow,
-};
+fn glfwErrorCB(error_code: glfw.ErrorCode, description: [:0]const u8) void {
+    std.log.err("glfw: {any}: {s}\n", .{ error_code, description });
+}
 
-pub extern fn glfwGetInstanceProcAddress(instance: vk.Instance, procname: [*:0]const u8) vk.PfnVoidFunction;
+fn loaderFn(instance: ?vk.Instance, procname: [*:0]const u8) ?glfw.VKProc {
+    if (instance) |actual_instance| {
+        const inst: ?*anyopaque = @constCast(@ptrCast(&actual_instance));
+        return glfw.getInstanceProcAddress(inst, procname);
+    } else {
+        return glfw.getInstanceProcAddress(null, procname);
+    }
+}
 
 pub const Core = struct {
-    window: *glfw.GLFWwindow,
+    // window: *glfw.Window,
     wname: [:0]const u8,
     last_time: f32,
     // input_manager: input.InputManager,
@@ -61,41 +70,34 @@ pub const Core = struct {
     }
 
     pub fn initWithConfig(config: CoreConfig) !Core {
-        if (glfw.glfwInit() != glfw.GLFW_TRUE) return glfwError.FailedToInit;
-
-        if (config.vsync) {
-            glfw.glfwSwapInterval(1);
-        } else {
-            glfw.glfwSwapInterval(0);
+        glfw.setErrorCallback(glfwErrorCB);
+        if (!glfw.init(.{})) {
+            std.log.err("failed to init GLFW: {?s}\n", .{glfw.getErrorString()});
+            return error.GlfwInitFailed;
         }
 
-        glfw.glfwWindowHint(glfw.GLFW_CLIENT_API, glfw.GLFW_NO_API);
-        // FIXME: Is it redundant with swapinteval call above ?
-        glfw.glfwWindowHint(glfw.GLFW_DOUBLEBUFFER, if (config.vsync) glfw.GLFW_TRUE else glfw.GLFW_FALSE);
+        _ = glfw.Window.Hints{ .client_api = .no_api, .doublebuffer = config.vsync };
 
-        const window = glfw.glfwCreateWindow(
-            config.window_width,
-            config.window_height,
-            config.window_title,
-            null,
-            null,
-        );
+        // DEPRECATED: need to advance with vulkan.
+        // const window = glfw.createWindowSurface(
+        //     config.window_width,
+        //     config.window_height,
+        //     config.window_title,
+        //     null,
+        //     null,
+        // );
+        // if (window == null) return glfwError.FailedToInitWindow;
+        // glfw.glfwMakeContextCurrent(window.?);
 
-        if (window == null) return glfwError.FailedToInitWindow;
+        // const fn_name: [*:0]const u8 = "enumerateInstanceExtensionProperties";
+        const maybe_vkb: ?vk.BaseWrapper = vk.BaseWrapper.load(loaderFn);
+        var vkb: vk.BaseWrapper = undefined;
+        if (maybe_vkb) |val| {
+            vkb = val;
+        } else {
+            return error.CantLoadVulkanProcAddress;
+        }
 
-        glfw.glfwMakeContextCurrent(window.?);
-
-        // const app_info: vk.InstanceCreateInfo = &vk.InstanceCreateInfo{
-        //     .p_application_name = "tobedetermined",
-        //     .application_version = @bitCast(vk.makeApiVersion(0, 0, 1, 0)),
-        //     .engine_name = "ArcZEngine",
-        //     .engine_version = @bitCast(vk.makeApiVersion(0, 0, 1, 0)),
-        //     .api_version = @bitCast(vk.API_VERSION_1_2),
-        // };
-
-        const vkb: vk.BaseWrapper = vk.BaseWrapper.load(glfwGetInstanceProcAddress);
-        // const instance: vk.Instance = try vkb.createInstance(&app_info, null);
-        // _ = instance;
         var ext_count: u32 = 0;
         const res = try vkb.enumerateInstanceExtensionProperties(null, &ext_count, null);
         if (vk.Result.success != res) {
@@ -105,7 +107,7 @@ pub const Core = struct {
         }
 
         return Core{
-            .window = window.?,
+            // .window = window.?,
             .wname = config.window_title,
             .last_time = 0.0,
             // .input_manager = input.InputManager.init(),
@@ -114,8 +116,9 @@ pub const Core = struct {
     }
 
     pub fn deinit(self: Core) void {
-        glfw.glfwDestroyWindow(self.window);
-        glfw.glfwTerminate();
+        // glfw.Window.destroy(self.window);
+        _ = self;
+        glfw.terminate();
     }
 
     // fn setupCamera(self: *Core, comptime T: type, game: *T) void {
@@ -135,23 +138,22 @@ pub const Core = struct {
 
         _ = game;
 
-        self.last_time = @floatCast(glfw.glfwGetTime());
+        self.last_time = @floatCast(glfw.getTime());
 
-        while (glfw.glfwWindowShouldClose(self.window) != glfw.GLFW_TRUE) {
-            // const now: f32 = @floatCast(glfw.glfwGetTime());
-            // const dt = now - self.last_time;
-            // self.last_time = now;
+        // while (self.window.shouldClose()) {
+        // const now: f32 = @floatCast(glfw.glfwGetTime());
+        // const dt = now - self.last_time;
+        // self.last_time = now;
 
-            // update things
-            // try self.input_manager.update(&game.cam, self.window);
-            // try game.update(dt);
+        // update things
+        // try self.input_manager.update(&game.cam, self.window);
+        // try game.update(dt);
 
-            // render things
-            // try game.draw();
+        // render things
+        // try game.draw();
 
-            glfw.glfwSwapBuffers(self.window);
-            glfw.glfwPollEvents();
-        }
-        self.deinit();
+        //     glfw.pollEvents();
+        // }
+        // self.deinit();
     }
 };

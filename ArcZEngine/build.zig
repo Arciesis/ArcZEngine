@@ -22,6 +22,9 @@ pub fn build(b: *std.Build) void {
     const zimg = b.dependency("zigimg", .{});
     mod.addImport("zigimg", zimg.module("zigimg"));
 
+    const glfw_zig = b.dependency("glfw", .{});
+    mod.addImport("glfw", glfw_zig.module("glfw"));
+
     // TODO: to compile shader directly from build...
     //
     // ...
