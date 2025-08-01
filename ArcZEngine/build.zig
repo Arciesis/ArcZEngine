@@ -14,9 +14,6 @@ pub fn build(b: *std.Build) void {
     const zmath = b.dependency("zmath", .{});
     mod.addImport("zmath", zmath.module("root"));
 
-    const zglfw = b.dependency("zglfw", .{});
-    mod.addImport("zglfw", zglfw.module("root"));
-
     const zflecs = b.dependency("zflecs", .{});
     mod.addImport("zflecs", zflecs.module("root"));
 
@@ -50,10 +47,6 @@ pub fn build(b: *std.Build) void {
 
     // === system libs linkage === //
 
-    if (target.result.os.tag != .emscripten) {
-        lib.linkLibrary(zglfw.artifact("glfw"));
-    }
-
     switch (target.result.os.tag) {
         .windows => {
             if (target.result.cpu.arch.isX86()) {
@@ -85,6 +78,11 @@ pub fn build(b: *std.Build) void {
     }
 
     lib.linkLibrary(zflecs.artifact("flecs"));
+
+    lib.linkSystemLibrary("glfw");
+
+    lib.linkLibC();
+    lib.linkLibCpp();
     // === end system libs linkage === //
 
     // === vulkan bindings === //
@@ -96,7 +94,7 @@ pub fn build(b: *std.Build) void {
     }).artifact("vulkan-zig-generator");
 
     const bind_cmd = b.addRunArtifact(vk_art);
-    bind_cmd.addArg("vk/vk.xml");
+    bind_cmd.addArg("vulkan/vk.xml");
     bind_cmd.addArg("src/vk.zig");
 
     bind_step.dependOn(&bind_cmd.step);

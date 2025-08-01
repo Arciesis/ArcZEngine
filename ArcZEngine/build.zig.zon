@@ -8,10 +8,6 @@
             .url = "https://github.com/zig-gamedev/zmath/archive/666efb32f8bf782d44d3ecaf8441a3455c2412fb.tar.gz",
             .hash = "zmath-0.11.0-dev-wjwivdErAwA9JvOksjectxgnDUZumDR1V9DwKy5UeTOT",
         },
-        .zglfw = .{
-            .url = "https://github.com/zig-gamedev/zglfw/archive/c337cb3d3f984468ea7a386335937a5d555fc024.tar.gz",
-            .hash = "zglfw-0.10.0-dev-zgVDNMacIQA-k7kNSfwUc9Lfzx-bb_wklVm25K-p8Tr7",
-        },
         .zflecs = .{
             .url = "https://github.com/zig-gamedev/zflecs/archive/5310f5f64bf1a65f2b19d46542ba2b41a8854fe4.tar.gz",
             .hash = "zflecs-0.2.0-dev-1PN3yktgNgCW_h6EV1wR4C3p0Waw12W3kaTELxVmokCa",
