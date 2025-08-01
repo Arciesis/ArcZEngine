@@ -70,6 +70,7 @@ pub const Core = struct {
         }
 
         glfw.glfwWindowHint(glfw.GLFW_CLIENT_API, glfw.GLFW_NO_API);
+        // FIXME: Is it redundant with swapinteval call above ?
         glfw.glfwWindowHint(glfw.GLFW_DOUBLEBUFFER, if (config.vsync) glfw.GLFW_TRUE else glfw.GLFW_FALSE);
 
         const window = glfw.glfwCreateWindow(
@@ -83,6 +84,25 @@ pub const Core = struct {
         if (window == null) return glfwError.FailedToInitWindow;
 
         glfw.glfwMakeContextCurrent(window.?);
+
+        // const app_info: vk.InstanceCreateInfo = &vk.InstanceCreateInfo{
+        //     .p_application_name = "tobedetermined",
+        //     .application_version = @bitCast(vk.makeApiVersion(0, 0, 1, 0)),
+        //     .engine_name = "ArcZEngine",
+        //     .engine_version = @bitCast(vk.makeApiVersion(0, 0, 1, 0)),
+        //     .api_version = @bitCast(vk.API_VERSION_1_2),
+        // };
+
+        const vkb: vk.BaseWrapper = vk.BaseWrapper.load(glfwGetInstanceProcAddress);
+        // const instance: vk.Instance = try vkb.createInstance(&app_info, null);
+        // _ = instance;
+        var ext_count: u32 = 0;
+        const res = try vkb.enumerateInstanceExtensionProperties(null, &ext_count, null);
+        if (vk.Result.success != res) {
+            @panic("UhoH\n");
+        } else {
+            std.debug.print("extension count: {d}\n", .{ext_count});
+        }
 
         return Core{
             .window = window.?,
